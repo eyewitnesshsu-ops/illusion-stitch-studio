@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>光栅编织图解生成器 · Illusion Stitch Studio</title>
+<style>
+:root{
+  --paper:#FBFAF6; --gridln:rgba(38,50,75,.06);
+  --ink:#26324B; --red:#C8302E; --teal:#2C7A6B;
+  --cream:#F2E7D5; --soft:#7d8494; --line:#E3E1D8;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;
+  color:var(--ink);line-height:1.65;background:var(--paper);
+  background-image:linear-gradient(var(--gridln) 1px, transparent 1px),
+    linear-gradient(90deg, var(--gridln) 1px, transparent 1px);
+  background-size:18px 18px;
+  padding-bottom:80px;
+}
+.stage{max-width:640px;margin:0 auto;padding:0 14px}
+.cols{display:block}
+@media (min-width:960px){
+  .stage{max-width:1200px}
+  .cols{display:grid;grid-template-columns:minmax(380px,480px) 1fr;gap:24px;align-items:start}
+}
+/* ---- home ---- */
+.home-head{padding:52px 4px 8px}
+.eyebrow{font-size:11px;letter-spacing:.34em;color:var(--red);font-weight:700;margin-bottom:12px}
+h1{font-family:"Songti SC","Noto Serif SC","STSong",serif;font-size:38px;font-weight:900;line-height:1.18}
+h1 em{font-style:normal;color:var(--red)}
+.home-sub{font-size:13.5px;color:var(--soft);margin:14px 0 30px;max-width:360px}
+.cards{display:flex;gap:16px;max-width:520px}
+.card{flex:1;border:2px solid var(--ink);border-radius:14px;background:#fff;overflow:hidden;
+  text-align:center;cursor:pointer;box-shadow:4px 4px 0 var(--ink);
+  transition:transform .15s, box-shadow .15s}
+.card:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.swatch{height:104px;position:relative}
+.swatch.knit{background:repeating-linear-gradient(180deg,var(--red) 0 9px,var(--cream) 9px 18px)}
+.swatch.knit::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse 46px 34px at 50% 52%, rgba(38,50,75,.30), transparent 70%)}
+.swatch.cro{background:repeating-linear-gradient(180deg,var(--teal) 0 9px,var(--cream) 9px 18px)}
+.swatch.cro::after{content:"× × Ŧ × ×";position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-family:Georgia,"Songti SC",serif;font-size:21px;letter-spacing:5px;
+  color:rgba(38,50,75,.55);font-weight:700}
+.card .en{font-family:"Songti SC","Noto Serif SC",serif;font-size:21px;font-weight:900;padding-top:12px}
+.card .cn{font-size:12px;color:var(--soft);padding:2px 0 14px}
+/* ---- app pages ---- */
+.pagebar{display:flex;align-items:center;gap:10px;padding:22px 2px 0}
+.back{width:34px;height:34px;border:2px solid var(--ink);border-radius:10px;background:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;
+  box-shadow:2.5px 2.5px 0 var(--ink);color:var(--ink);cursor:pointer}
+.pagebar .t{font-family:"Songti SC","Noto Serif SC",serif;font-size:20px;font-weight:900}
+.pagebar .badge{margin-left:auto;font-size:10.5px;letter-spacing:.1em;
+  border:1.5px solid;border-radius:999px;padding:2px 10px;font-weight:700;background:#fff}
+.badge.kb{color:var(--red);border-color:var(--red)}
+.badge.cb{color:var(--teal);border-color:var(--teal)}
+.stepline{display:flex;align-items:baseline;gap:10px;margin:28px 0 12px;
+  border-bottom:1.5px solid var(--ink);padding-bottom:8px}
+.stepnum{font-family:"Songti SC",serif;font-size:24px;font-weight:900}
+.k .stepnum{color:var(--red)} .c .stepnum{color:var(--teal)}
+.stepline h3{font-family:"Songti SC",serif;font-size:17px;font-weight:800}
+.stepline small{color:var(--soft);font-size:11.5px}
+.panel{background:#fff;border:2px solid var(--ink);border-radius:14px;padding:14px;
+  box-shadow:4px 4px 0 var(--ink)}
+.toolrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center}
+button,label.filebtn{
+  font-family:inherit;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:8px;
+  border:1.8px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer;
+  box-shadow:2px 2px 0 var(--ink);transition:transform .1s, box-shadow .1s;
+  display:inline-flex;align-items:center;gap:5px}
+button:active,label.filebtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+button.on{background:var(--ink);color:#fff}
+button.shape{min-width:42px;justify-content:center;padding:8px}
+button.shape svg{display:block;width:18px;height:18px}
+.k button.go{background:var(--red);border-color:var(--red);color:#fff;box-shadow:2px 2px 0 #7e1c1a}
+.c button.go{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:2px 2px 0 #17473e}
+button:focus-visible,input:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+input[type=file]{display:none}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
+.row label{font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+input[type=number]{width:62px;padding:6px 8px;font-size:14px;border:1.8px solid var(--ink);border-radius:8px;font-family:inherit;background:#fff}
+input[type=text]{padding:6px 10px;font-size:14px;border:1.8px solid var(--ink);border-radius:8px;font-family:inherit;width:88px;background:#fff}
+input.digit{width:56px;text-align:center}
+.k input[type=range]{accent-color:var(--red)} .c input[type=range]{accent-color:var(--teal)}
+input[type=range]{flex:1;min-width:110px}
+input[type=color]{width:38px;height:30px;border:1.8px solid var(--ink);border-radius:8px;padding:2px;background:#fff}
+canvas.board{display:block;width:100%;touch-action:none;border:2px solid var(--ink);border-radius:8px;background:#fff}
+.photo-block{border:1.5px dashed var(--line);border-radius:10px;padding:10px;margin:4px 0 12px;background:var(--paper)}
+.photo-block .bt{font-size:12px;font-weight:800;margin-bottom:8px}
+.pill-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 2px}
+.pill{font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;
+  border:1.8px solid var(--ink);background:#fff;cursor:pointer}
+.k .pill.on{background:var(--red);border-color:var(--red);color:#fff}
+.c .pill.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.hint{font-size:11.5px;color:var(--soft);margin-top:9px}
+.chart-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:2px solid var(--ink);border-radius:8px;background:#fff}
+.chart-scroll canvas{display:block}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:var(--soft)}
+.legend b{color:var(--ink)}
+.warn{display:none;font-size:12px;color:var(--red);font-weight:700;margin-top:8px}
+details.tip{margin-top:8px}
+details summary{cursor:pointer;font-weight:800;font-size:13px;padding:4px 0}
+details.sec{margin-top:14px}
+details.sec summary{font-family:"Songti SC",serif;font-size:14px;padding:6px 0}
+.tipbody{font-size:12px;color:var(--soft);padding:8px 2px 0}
+.tipbody b{color:var(--ink)}
+.tech-note{font-size:12px;background:#FDF6EC;border:1.5px solid #E8D9BC;border-radius:8px;
+  padding:9px 11px;margin:8px 0 6px;color:#6b5b3a}
+.tech-note b{color:var(--red)}
+.instructions{margin-top:8px;background:#fff;border:2px solid var(--ink);border-radius:10px;
+  max-height:340px;overflow:auto;font-size:12.5px}
+.instructions table{width:100%;border-collapse:collapse}
+.instructions th{text-align:left;padding:8px 10px;background:var(--paper);position:sticky;top:0;
+  font-size:11.5px;letter-spacing:.05em;border-bottom:2px solid var(--ink)}
+.instructions td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.instructions tr.pat td:first-child{font-weight:800}
+.k .instructions tr.pat td:first-child{color:var(--red)}
+.c .instructions tr.pat td:first-child{color:var(--teal)}
+.mono{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12px}
+.prev-wrap{perspective:900px;display:flex;justify-content:center}
+footer.site{margin-top:44px;font-size:10.5px;color:#9a988e;border-top:1px dashed var(--line);
+  padding-top:12px;text-align:center;line-height:1.9}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+<!-- ================== 首页 ================== -->
+<div id="view-home" class="stage">
+  <header class="home-head">
+    <div class="eyebrow">ILLUSION STITCH STUDIO</div>
+    <h1>光栅编织<br><em>图解</em>生成器</h1>
+    <p class="home-sub">画出图案，自动生成棒针或钩针图解。正视是条纹，换个角度看见图案。</p>
+    <div class="cards">
+      <div class="card" data-go="knit">
+        <div class="swatch knit"></div>
+        <div class="en">Knitting</div><div class="cn">棒针</div>
+      </div>
+      <div class="card" data-go="cro">
+        <div class="swatch cro"></div>
+        <div class="en">Crochet</div><div class="cn">钩针</div>
+      </div>
+    </div>
+    <footer class="site">
+      © 2026 翡晔楼 · Illusion Stitch Studio 光栅编织图解生成器<br>
+      设计开发：小红书 @翡晔楼 · 仅供个人使用，禁止商用
+    </footer>
+  </header>
+</div>
+
+<!-- ================== 棒针 ================== -->
+<div id="view-knit" class="stage k" hidden>
+<div class="pagebar">
+  <div class="back" data-go="home">←</div>
+  <div class="t">Knitting 棒针</div>
+  <div class="badge kb">每格 = 2 行</div>
+</div>
+<div class="cols">
+<div class="col">
+<div class="stepline"><span class="stepnum">壹</span><h3>设计图案</h3><small>每个格子 = 2 行编织</small></div>
+<div class="panel">
+  <div class="row">
+    <label>宽（针数）<input type="number" id="k-gw" min="15" max="100" value="40"></label>
+    <label>高（格数）<input type="number" id="k-gh" min="10" max="100" value="40"></label>
+    <button id="k-resizeBtn">应用尺寸</button>
+  </div>
+  <p class="hint" style="margin:-2px 0 10px">画布越小，出图效果越差：导入照片或人物图案建议 80×80 甚至 100×100；简单图形可用 30×30 起；20×20 只适合极简图形。目前最大支持 100×100。</p>
+  <div class="toolrow">
+    <button id="k-penBtn" class="on">✏️ 画</button>
+    <button id="k-eraseBtn">◻️ 擦</button>
+    <button id="k-clearBtn">清空</button>
+    <button id="k-invertBtn">反相</button>
+  </div>
+  <div class="toolrow" id="k-shapeRow"></div>
+  <div class="toolrow">
+    <input type="text" id="k-letterInput" placeholder="字/字母" maxlength="2">
+    <button id="k-letterBtn">生成文字</button>
+  </div>
+  <div class="toolrow">
+    <input type="text" class="digit" id="k-digitInput" placeholder="0–9" inputmode="numeric" maxlength="1">
+    <button id="k-digitBtn">生成数字</button>
+  </div>
+  <div class="photo-block">
+    <div class="bt">📷 导入照片（结果直接出现在下方画布）</div>
+    <div class="toolrow" style="margin-bottom:0">
+      <label class="filebtn">选择照片<input type="file" id="k-imgInput" accept="image/*"></label>
+      <button id="k-focusBtn" style="display:none">🎯 突出主体</button>
+      <button id="k-imgInvert" style="display:none">明暗互换</button>
+    </div>
+    <div class="row" id="k-contrastRow" style="display:none;margin:10px 0 0">
+      <label style="width:100%">对比度 <input type="range" id="k-contrast" min="50" max="300" value="130"></label>
+      <label style="width:100%">明暗分界（阈值）<input type="range" id="k-thresh" min="10" max="245" value="128"></label>
+    </div>
+    <details class="tip" open><summary>选照片小贴士</summary>
+      <div class="tipbody">图案由格子拼出，格子数越多、还原度越高——想更精细可以把宽和高调大。几十格的分辨率装不下正脸五官这类细节，<b>主体突出、明暗对比强</b>的照片（剪影、逆光轮廓）转换效果最好；平光生活照、背景杂乱的照片切出来会比较碎。导入后可随时用画笔／橡皮手动修整格子。</div>
+    </details>
+  </div>
+  <div class="pill-row" id="k-rotRow">
+    <span class="pill on" data-rot="0">不旋转</span>
+    <span class="pill" data-rot="cw">顺时针 90°</span>
+    <span class="pill" data-rot="ccw">逆时针 90°</span>
+  </div>
+  <p class="hint" style="margin-top:2px;margin-bottom:10px">旋转作用于预设图形 / 文字 / 数字 / 导入照片（做衣服纵条纹时用）。手绘内容请直接按想要的方向画。</p>
+  <canvas class="board" id="k-editCanvas"></canvas>
+  <p class="hint">深色 = 图案（对比色），白色 = 背景。图案四周留几格空白效果更好。</p>
+  <details class="tip" open><summary>关于比例与密度</summary>
+    <div class="tipbody">图解按「1 针宽 ≈ 1 格高（2 行）」的近似比例设计。实际密度随线材、针号、手劲不同，织出的图案会略扁或略高；而斜视显形时，视角本身也会把图案压扁，角度越斜越扁——所以不必追求绝对精确。若试片后变形明显，可在设计时反向把图形拉高或压扁一点补偿。</div>
+  </details>
+</div>
+</div>
+<div class="col">
+<div class="stepline"><span class="stepnum">贰</span><h3>编织图解</h3><small>实色下针 · 打点上针 · 可左右滑动</small></div>
+<div class="panel">
+  <div class="row">
+    <label>背景色 <input type="color" id="k-bgColor" value="#E4D5B8"></label>
+    <label>图案色 <input type="color" id="k-patColor" value="#C8302E"></label>
+    <button id="k-classicBtn">经典黑白</button>
+  </div>
+  <p class="hint" id="k-lightNote" style="display:none;margin-top:6px">为便于阅读，过浅的线色在图解中已加深显示。</p>
+  <p class="warn" id="k-colorWarn">⚠ 两个线色较接近，图解上不易区分，建议点「经典黑白」查看。</p>
+  <div class="chart-scroll"><canvas id="k-chartCanvas"></canvas></div>
+  <div class="legend">
+    <span><b>实色格</b> 下针</span><span><b>打点格</b> 上针</span>
+    <span style="color:var(--red)">红线每 10 格</span>
+    <span>每一横行 = 2 行编织，同一种线织完 2 行再换线；横行出现哪种颜色，就用那种颜色的线</span>
+  </div>
+  <div class="toolrow" style="margin-top:12px;margin-bottom:0">
+    <button class="go" id="k-dlChart">⬇ 下载图解 PNG</button>
+    <button id="k-copyText">复制文字说明</button>
+  </div>
+</div>
+<details class="sec" open>
+  <summary>逐行文字说明</summary>
+  <p class="hint" style="margin:4px 0 4px">图解每一横行 = 实际编织的 <b>2 行</b>（1 正面 + 1 反面）。横行里出现背景色就换背景色线，出现图案色就换图案色线。<br>
+  第 1 行（正面）：<b style="color:var(--red)">不管用哪种线，永远全部织下针</b>，从右往左织，不用看图。<br>
+  第 2 行（反面）：从左往右照图织——<b>实色格织下针，打点格织上针</b>。<br>
+  打点格是"图案藏起来的位置"：背景色横行里它对应图案的形状，图案色横行里它对应图案以外的背景——所以正面只见条纹，斜看图案才浮现。</p>
+  <div class="instructions"><table id="k-instrTable">
+    <thead><tr><th style="width:120px">用线 / 行号</th><th>每种颜色的第 2 行（反面行），左→右照图</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+</details>
+<div class="stepline"><span class="stepnum">叁</span><h3>视角模拟</h3><small id="k-simSub">正视条纹 · 从下往上斜视显形</small></div>
+<div class="panel">
+  <div class="prev-wrap"><canvas class="board" id="k-prevCanvas" style="transition:transform .1s linear"></canvas></div>
+  <div class="row" style="margin-top:12px">
+    <span style="font-size:12px;font-weight:700">正视</span>
+    <input type="range" id="k-angle" min="0" max="100" value="0" aria-label="观看角度">
+    <span style="font-size:12px;font-weight:700" id="k-angR">侧视</span>
+  </div>
+  <p class="hint" id="k-simHint">斜视时凸起的织纹遮住平面：图案处凸起的是图案线，背景处凸起的是背景线，图案浮现。织得比平时紧一号更清晰。</p>
+</div>
+</div>
+</div>
+<footer class="site">
+  © 2026 翡晔楼 · Illusion Stitch Studio 光栅编织图解生成器<br>
+  设计开发：小红书 @翡晔楼 · 仅供个人使用，禁止商用
+</footer>
+</div>
+
+<!-- ================== 钩针 ================== -->
+<div id="view-cro" class="stage c" hidden>
+<div class="pagebar">
+  <div class="back" data-go="home">←</div>
+  <div class="t">Crochet 钩针</div>
+  <div class="badge cb">短针 × · 长针 Ŧ</div>
+</div>
+<div class="cols">
+<div class="col">
+<div class="stepline"><span class="stepnum">壹</span><h3>设计图案</h3><small>每个格子 = 1 行短针</small></div>
+<div class="panel">
+  <div class="row">
+    <label>宽（针数）<input type="number" id="c-gw" min="15" max="100" value="40"></label>
+    <label>高（行数）<input type="number" id="c-gh" min="10" max="100" value="40" step="2"></label>
+    <button id="c-resizeBtn">应用尺寸</button>
+  </div>
+  <p class="hint" style="margin:-2px 0 10px">画布越小，出图效果越差：导入照片或人物图案建议 80×80 甚至 100×100；简单图形可用 30×30 起；20×20 只适合极简图形。目前最大支持 100×100。</p>
+  <div class="toolrow">
+    <button id="c-penBtn" class="on">✏️ 画</button>
+    <button id="c-eraseBtn">◻️ 擦</button>
+    <button id="c-clearBtn">清空</button>
+    <button id="c-invertBtn">反相</button>
+  </div>
+  <div class="toolrow" id="c-shapeRow"></div>
+  <div class="toolrow">
+    <input type="text" id="c-letterInput" placeholder="字/字母" maxlength="2">
+    <button id="c-letterBtn">生成文字</button>
+  </div>
+  <div class="toolrow">
+    <input type="text" class="digit" id="c-digitInput" placeholder="0–9" inputmode="numeric" maxlength="1">
+    <button id="c-digitBtn">生成数字</button>
+  </div>
+  <div class="photo-block">
+    <div class="bt">📷 导入照片（结果直接出现在下方画布）</div>
+    <div class="toolrow" style="margin-bottom:0">
+      <label class="filebtn">选择照片<input type="file" id="c-imgInput" accept="image/*"></label>
+      <button id="c-focusBtn" style="display:none">🎯 突出主体</button>
+      <button id="c-imgInvert" style="display:none">明暗互换</button>
+    </div>
+    <div class="row" id="c-contrastRow" style="display:none;margin:10px 0 0">
+      <label style="width:100%">对比度 <input type="range" id="c-contrast" min="50" max="300" value="130"></label>
+      <label style="width:100%">明暗分界（阈值）<input type="range" id="c-thresh" min="10" max="245" value="128"></label>
+    </div>
+    <details class="tip" open><summary>选照片小贴士</summary>
+      <div class="tipbody">图案由格子拼出，格子数越多、还原度越高——想更精细可以把宽和高调大。几十格的分辨率装不下正脸五官这类细节，<b>主体突出、明暗对比强</b>的照片（剪影、逆光轮廓）转换效果最好；平光生活照、背景杂乱的照片切出来会比较碎。导入后可随时用画笔／橡皮手动修整格子。</div>
+    </details>
+  </div>
+  <div class="pill-row" id="c-rotRow">
+    <span class="pill on" data-rot="0">不旋转</span>
+    <span class="pill" data-rot="cw">顺时针 90°</span>
+    <span class="pill" data-rot="ccw">逆时针 90°</span>
+  </div>
+  <p class="hint" style="margin-top:2px;margin-bottom:10px">旋转作用于预设图形 / 文字 / 数字 / 导入照片（做衣服纵条纹时用）。手绘内容请直接按想要的方向画。</p>
+  <canvas class="board" id="c-editCanvas"></canvas>
+  <p class="hint">深色 = 图案（长针凸起），白色 = 背景。长针只落在图案色行组的正面行上，图案纵向边缘会按 2 行取整，属正常现象。</p>
+  <details class="tip" open><summary>关于比例与密度</summary>
+    <div class="tipbody">图解按「1 针宽 ≈ 1 行高」的近似比例设计。实际密度随线材、针号、手劲不同，织出的图案会略扁或略高；而侧视显形时，视角本身也会把图案压扁，角度越斜越扁——所以不必追求绝对精确。若试片后变形明显，可在设计时反向把图形拉高或压扁一点补偿。</div>
+  </details>
+</div>
+</div>
+<div class="col">
+<div class="stepline"><span class="stepnum">贰</span><h3>符号图解</h3><small>逐行显示 · 标注行方向 · 可左右滑动</small></div>
+<div class="panel">
+  <div class="row">
+    <label>背景色 <input type="color" id="c-bgColor" value="#C9A55A"></label>
+    <label>图案色 <input type="color" id="c-patColor" value="#2C7A6B"></label>
+    <button id="c-classicBtn">经典黑白</button>
+  </div>
+  <p class="hint" id="c-lightNote" style="display:none;margin-top:6px">为便于阅读，过浅的线色在图解中已加深显示。</p>
+  <p class="warn" id="c-colorWarn">⚠ 两个线色较接近，图解上不易区分，建议点「经典黑白」查看。</p>
+  <div class="chart-scroll"><canvas id="c-chartCanvas"></canvas></div>
+  <div class="legend">
+    <span><b>×</b> 短针</span>
+    <span><b>Ŧ</b> 长针 · 图案处，用<b>图案色加深</b>显示以看清轮廓</span>
+    <span><b>← →</b> 行方向（从正面看织物）</span>
+    <span style="color:var(--red)">红线每 10 针 / 10 行</span>
+    <span>图解已省略每行开头的起立针（1 锁针）</span>
+  </div>
+  <div class="toolrow" style="margin-top:12px;margin-bottom:0">
+    <button class="go" id="c-dlChart">⬇ 下载图解 PNG</button>
+    <button id="c-copyText">复制文字说明</button>
+  </div>
+</div>
+<details class="sec" open>
+  <summary>逐行文字说明</summary>
+  <p class="hint" style="margin:4px 0 4px">每 2 行为一组并换色：这一组出现哪种颜色，就用那种颜色的线。行方向均按<b>从正面看织物</b>描述：正面行从右→左，反面行从左→右。每行开头的起立针（1 锁针）已省略。</p>
+  <div class="tech-note">💡 <b>形成立体的关键：</b>图案色行组的反面行遇到下方是长针的针目时，短针要钩入<b>长针背后的横线</b>，把长针立柱推向正面凸起——这样侧视时图案才会浮现。</div>
+  <div class="instructions"><table id="c-instrTable">
+    <thead><tr><th style="width:130px">用线 / 行号</th><th>钩法</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+</details>
+<div class="stepline"><span class="stepnum">叁</span><h3>视角模拟</h3><small id="c-simSub">正视条纹 · 侧视显形</small></div>
+<div class="panel">
+  <div class="prev-wrap"><canvas class="board" id="c-prevCanvas" style="transition:transform .1s linear"></canvas></div>
+  <div class="row" style="margin-top:12px">
+    <span style="font-size:12px;font-weight:700">正视</span>
+    <input type="range" id="c-angle" min="0" max="100" value="0" aria-label="观看角度">
+    <span style="font-size:12px;font-weight:700" id="c-angR">侧视</span>
+  </div>
+  <p class="hint" id="c-simHint">侧视时长针立柱（图案线颜色）遮住短针平面，图案浮现。</p>
+</div>
+</div>
+</div>
+<footer class="site">
+  © 2026 翡晔楼 · Illusion Stitch Studio 光栅编织图解生成器<br>
+  设计开发：小红书 @翡晔楼 · 仅供个人使用，禁止商用
+</footer>
+</div>
+<script>
+(function(){
+"use strict";
+// ===================== 视图切换 =====================
+const views={home:"view-home",knit:"view-knit",cro:"view-cro"};
+const apps={};
+function showView(v){
+  Object.entries(views).forEach(([k,id])=>{
+    document.getElementById(id).hidden = (k!==v);
+  });
+  location.hash = v==="home" ? "" : (v==="knit"?"knitting":"crochet");
+  if(apps[v]) requestAnimationFrame(()=>apps[v].renderAll());
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("[data-go]").forEach(el=>{
+  el.addEventListener("click",()=>showView(el.dataset.go));
+});
+
+// ===================== 工具函数 =====================
+function mk(w,u){return Array.from({length:u},()=>new Array(w).fill(0));}
+function rgb(hex){hex=hex.replace("#","");return[parseInt(hex.slice(0,2),16),parseInt(hex.slice(2,4),16),parseInt(hex.slice(4,6),16)];}
+function relLum(hex){const[r,g,b]=rgb(hex);return .299*r+.587*g+.114*b;}
+function shadeHex(hex,f){const[r,g,b]=rgb(hex);
+  return "rgb("+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v*f)))).join(",")+")";}
+function symColor(hex){const l=relLum(hex);
+  if(l>190){const[r,g,b]=rgb(hex);const f=150/l;
+    return "rgb("+[r,g,b].map(v=>Math.round(v*f)).join(",")+")";}
+  return hex;}
+function tint(hex,a){const[r,g,b]=rgb(hex);return "rgba("+r+","+g+","+b+","+a+")";}
+function colorDist(a,b){const[r1,g1,b1]=rgb(a),[r2,g2,b2]=rgb(b);
+  return Math.sqrt((r1-r2)**2+(g1-g2)**2+(b1-b2)**2);}
+function fit(cv,w,h,fluid){
+  const dpr=window.devicePixelRatio||1;
+  cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);
+  if(fluid){cv.style.width="100%";cv.style.height="auto";}
+  else{cv.style.width=w+"px";cv.style.height=h+"px";}
+  cv.getContext("2d").setTransform(dpr,0,0,dpr,0,0);
+}
+function ln(ctx,x1,y1,x2,y2){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+const WATERMARK="© 翡晔楼 · 小红书 @翡晔楼";
+
+// 基础图形（含太阳/月亮），全部撑满可绘制区域
+const IC={
+  heart:"<svg viewBox='0 0 18 18' width='18' height='18' fill='currentColor'><path d='M9 15.5C4 11.5 2 8.5 3.5 5.8 4.8 3.5 8 3.6 9 6c1-2.4 4.2-2.3 5.5-.2C16 8.5 14 11.5 9 15.5Z'/></svg>",
+  circle:"<svg viewBox='0 0 18 18' width='18' height='18' fill='currentColor'><circle cx='9' cy='9' r='6'/></svg>",
+  square:"<svg viewBox='0 0 18 18' width='18' height='18' fill='currentColor'><rect x='4' y='4' width='10' height='10' rx='1'/></svg>",
+  triangle:"<svg viewBox='0 0 18 18' width='18' height='18' fill='currentColor'><path d='M9 3.5 15 14.5H3Z'/></svg>",
+  star:"<svg viewBox='0 0 18 18' width='18' height='18' fill='currentColor'><path d='M9 3l1.53 3.9 4.18.25-3.24 2.65 1.06 4.05L9 11.6l-3.53 2.25 1.06-4.05L3.29 7.15l4.18-.25Z'/></svg>",
+  sun:"<svg viewBox='0 0 18 18' width='18' height='18' fill='currentColor' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'><circle cx='9' cy='9' r='3' stroke='none'/><path d='M9 2.5v2M9 13.5v2M2.5 9h2M13.5 9h2M4.4 4.4l1.4 1.4M12.2 12.2l1.4 1.4M13.6 4.4l-1.4 1.4M5.8 12.2l-1.4 1.4' fill='none'/></svg>",
+  moon:"<svg viewBox='0 0 18 18' width='18' height='18' fill='currentColor'><path d='M15.75 9.59A6.75 6.75 0 1 1 8.41 2.25 5.25 5.25 0 0 0 15.75 9.59Z'/></svg>"
+};
+const shapeDefs=[
+  {key:"heart",icon:IC.heart,draw:(o,w,h)=>{const cx=w/2,cy=h/2,sz=Math.min(w,h)*.46;
+    o.save();o.translate(cx,cy+sz*.14);o.scale(sz/16,sz/16);
+    o.beginPath();o.moveTo(0,10);
+    o.bezierCurveTo(-14,-2,-9,-14,0,-6);
+    o.bezierCurveTo(9,-14,14,-2,0,10);
+    o.closePath();o.fill();o.restore();}},
+  {key:"circle",icon:IC.circle,draw:(o,w,h)=>{const r=Math.min(w,h)*.43;
+    o.beginPath();o.arc(w/2,h/2,r,0,Math.PI*2);o.fill();}},
+  {key:"square",icon:IC.square,draw:(o,w,h)=>{const r=Math.min(w,h)*.38;
+    o.fillRect(w/2-r,h/2-r,r*2,r*2);}},
+  {key:"triangle",icon:IC.triangle,draw:(o,w,h)=>{const r=Math.min(w,h)*.46,cx=w/2,cy=h/2+r*.16;
+    o.beginPath();o.moveTo(cx,cy-r);o.lineTo(cx-r*.95,cy+r*.62);o.lineTo(cx+r*.95,cy+r*.62);
+    o.closePath();o.fill();}},
+  {key:"star",icon:IC.star,draw:(o,w,h)=>{const cx=w/2,cy=h/2,R=Math.min(w,h)*.46,rI=R*.45;
+    o.beginPath();
+    for(let i=0;i<10;i++){const rad=i%2?rI:R,a=-Math.PI/2+i*Math.PI/5;
+      const x=cx+rad*Math.cos(a),y=cy+rad*Math.sin(a);
+      i?o.lineTo(x,y):o.moveTo(x,y);}
+    o.closePath();o.fill();}},
+  {key:"sun",icon:IC.sun,draw:(o,w,h)=>{const cx=w/2,cy=h/2,m=Math.min(w,h);
+    const r=m*.24;
+    o.beginPath();o.arc(cx,cy,r,0,Math.PI*2);o.fill();
+    o.lineWidth=m*.09;o.lineCap="round";o.strokeStyle="#000";
+    for(let i=0;i<8;i++){const a=i*Math.PI/4;
+      o.beginPath();
+      o.moveTo(cx+Math.cos(a)*r*1.35,cy+Math.sin(a)*r*1.35);
+      o.lineTo(cx+Math.cos(a)*r*1.85,cy+Math.sin(a)*r*1.85);
+      o.stroke();}}},
+  {key:"moon",icon:IC.moon,draw:(o,w,h)=>{const cx=w/2,cy=h/2,R=Math.min(w,h)*.42;
+    o.beginPath();o.arc(cx,cy,R,0,Math.PI*2);o.fill();
+    o.fillStyle="#fff";
+    o.beginPath();o.arc(cx+R*.55,cy-R*.2,R*.82,0,Math.PI*2);o.fill();
+    o.fillStyle="#000";}}
+];
+
+// ===================== 应用工厂 =====================
+// mode: "knit"（1格=2行，色条=1格） | "cro"（1格=1行，色条=2行）
+function makeApp(p,mode){
+  let W=40,U=40;                 // 针数 × 单元数（knit:格 / cro:行）
+  let grid=mk(W,U);
+  let tool="pen",rot="0",lastSource=null,lastImg=null,imgInv=false,focusOn=false,classic=false;
+  const $=id=>document.getElementById(p+id);
+  const editCv=$("editCanvas"),chartCv=$("chartCanvas"),prevCv=$("prevCanvas");
+  const ectx=editCv.getContext("2d"),cctx=chartCv.getContext("2d"),pctx=prevCv.getContext("2d");
+  const isCro = mode==="cro";
+
+  // ---------- 编辑器（方格，1:1） ----------
+  let eW=10;
+  function drawEditor(){
+    const avail=editCv.parentElement.clientWidth-4;
+    eW=avail/W;
+    fit(editCv,avail,eW*U,true);
+    ectx.fillStyle="#fff";ectx.fillRect(0,0,avail,eW*U);
+    ectx.fillStyle="#26324B";
+    for(let u=0;u<U;u++)for(let c=0;c<W;c++){
+      if(grid[u][c])ectx.fillRect(c*eW,(U-1-u)*eW,Math.ceil(eW),Math.ceil(eW));
+    }
+    if(eW>=5){
+      ectx.strokeStyle="#E3E1D8";ectx.lineWidth=1;
+      for(let c=0;c<=W;c++)ln(ectx,c*eW,0,c*eW,U*eW);
+      for(let u=0;u<=U;u++)ln(ectx,0,u*eW,W*eW,u*eW);
+    }
+    ectx.strokeStyle="rgba(200,48,46,.5)";ectx.lineWidth=1.5;
+    for(let c=10;c<W;c+=10)ln(ectx,c*eW,0,c*eW,U*eW);
+    for(let u=10;u<U;u+=10)ln(ectx,0,(U-u)*eW,W*eW,(U-u)*eW);
+  }
+  let painting=false;
+  function paintAt(x,y){
+    const r=editCv.getBoundingClientRect();
+    const scale=r.width/(editCv.parentElement.clientWidth-4);
+    const c=Math.floor((x-r.left)/(eW*scale)),uTop=Math.floor((y-r.top)/(eW*scale));
+    const u=U-1-uTop;
+    if(c<0||c>=W||u<0||u>=U)return;
+    const v=tool==="pen"?1:0;
+    if(grid[u][c]!==v){grid[u][c]=v;renderAll();}
+  }
+  editCv.addEventListener("pointerdown",e=>{painting=true;editCv.setPointerCapture(e.pointerId);paintAt(e.clientX,e.clientY);});
+  editCv.addEventListener("pointermove",e=>{if(painting)paintAt(e.clientX,e.clientY);});
+  window.addEventListener("pointerup",()=>painting=false);
+
+  // ---------- 盖章管线（fabric = W×U 方格像素） ----------
+  function applyRot(o,FW,FH){
+    o.translate(FW/2,FH/2);
+    if(rot==="cw")o.rotate(Math.PI/2);
+    if(rot==="ccw")o.rotate(-Math.PI/2);
+    const dw=(rot==="0")?FW:FH,dh=(rot==="0")?FH:FW;
+    o.translate(-dw/2,-dh/2);
+    return[dw,dh];
+  }
+  function fabricToGrid(off){
+    const d=off.getContext("2d").getImageData(0,0,W,U).data;
+    grid=mk(W,U);
+    for(let u=0;u<U;u++)for(let c=0;c<W;c++){
+      const y=U-1-u,i=(y*W+c)*4;
+      const lum=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+      if(lum<128)grid[u][c]=1;
+    }
+    renderAll();
+  }
+  function stampVector(drawFn){
+    // 高分辨率临时画布上绘制并旋转 → 求图形实际边界 → 自动缩放撑满画布（留少量边距）
+    const HI=240;
+    const tmp=document.createElement("canvas");tmp.width=HI;tmp.height=HI;
+    const t=tmp.getContext("2d");
+    t.fillStyle="#fff";t.fillRect(0,0,HI,HI);
+    t.save();
+    t.translate(HI/2,HI/2);
+    if(rot==="cw")t.rotate(Math.PI/2);
+    if(rot==="ccw")t.rotate(-Math.PI/2);
+    t.translate(-HI/2,-HI/2);
+    t.fillStyle="#000";t.strokeStyle="#000";
+    drawFn(t,HI,HI);
+    t.restore();
+    const td=t.getImageData(0,0,HI,HI).data;
+    let x0=HI,y0=HI,x1=-1,y1=-1;
+    for(let y=0;y<HI;y++)for(let x=0;x<HI;x++){
+      const i=(y*HI+x)*4;
+      const lum=.299*td[i]+.587*td[i+1]+.114*td[i+2];
+      if(lum<128){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+    }
+    const off=document.createElement("canvas");off.width=W;off.height=U;
+    const o=off.getContext("2d");
+    o.fillStyle="#fff";o.fillRect(0,0,W,U);
+    if(x1>=0){
+      const bw=x1-x0+1,bh=y1-y0+1;
+      const margin=Math.max(1,Math.round(Math.min(W,U)*.06));
+      const sc=Math.min((W-2*margin)/bw,(U-2*margin)/bh);
+      const dw=bw*sc,dh=bh*sc;
+      o.imageSmoothingEnabled=true;
+      o.drawImage(tmp,x0,y0,bw,bh,(W-dw)/2,(U-dh)/2,dw,dh);
+    }
+    fabricToGrid(off);
+  }
+  function stampImage(){
+    const off=document.createElement("canvas");off.width=W;off.height=U;
+    const o=off.getContext("2d");
+    o.fillStyle="#fff";o.fillRect(0,0,W,U);
+    o.save();
+    const[dw,dh]=applyRot(o,W,U);
+    const ir=lastImg.width/lastImg.height,gr=dw/dh;
+    let iw,ih,ix,iy;
+    if(ir>gr){ih=dh;iw=dh*ir;ix=(dw-iw)/2;iy=0;}else{iw=dw;ih=dw/ir;ix=0;iy=(dh-ih)/2;}
+    o.drawImage(lastImg,ix,iy,iw,ih);
+    o.restore();
+    const im=o.getImageData(0,0,W,U),d=im.data;
+    const k=(+$("contrast").value)/100,th=+$("thresh").value;
+    const cx=W/2,cy=U/2,rMax=Math.sqrt(cx*cx+cy*cy);
+    for(let y=0;y<U;y++)for(let x=0;x<W;x++){
+      const i=(y*W+x)*4;
+      let lum=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+      lum=(lum-128)*k+128;
+      if(focusOn){
+        const dist=Math.sqrt((x-cx)**2+(y-cy)**2)/rMax;
+        const e=Math.max(0,(dist-.55)/.45);
+        lum=lum*(1-e)+255*e;
+      }
+      let on=lum<th;if(imgInv)on=!on;
+      const v=on?0:255;
+      d[i]=d[i+1]=d[i+2]=v;
+    }
+    o.putImageData(im,0,0);
+    fabricToGrid(off);
+  }
+  function textDrawer(txt){
+    return(o,w,h)=>{
+      o.textAlign="center";o.textBaseline="middle";
+      o.font="900 "+Math.floor(Math.min(w,h)*(txt.length>1?.62:.9))+"px -apple-system,'PingFang SC',sans-serif";
+      o.fillText(txt,w/2,h/2+h*.03);
+    };
+  }
+  function replay(){
+    if(!lastSource)return;
+    if(lastSource.kind==="shape")stampVector(lastSource.fn);
+    else if(lastSource.kind==="text")stampVector(textDrawer(lastSource.v));
+    else if(lastSource.kind==="image"&&lastImg)stampImage();
+  }
+
+  // ---------- 素材按钮 ----------
+  const shapeRow=$("shapeRow");
+  shapeDefs.forEach(s=>{
+    const b=document.createElement("button");
+    b.className="shape";b.innerHTML=s.icon;b.title=s.key;
+    b.onclick=()=>{lastSource={kind:"shape",fn:s.draw};replay();};
+    shapeRow.appendChild(b);
+  });
+  $("letterBtn").onclick=()=>{
+    const t=$("letterInput").value.trim();if(!t)return;
+    lastSource={kind:"text",v:t};replay();
+  };
+  $("digitBtn").onclick=()=>{
+    const t=$("digitInput").value.trim();
+    if(!/^[0-9]$/.test(t)){$("digitInput").value="";$("digitInput").placeholder="仅限0–9";return;}
+    lastSource={kind:"text",v:t};replay();
+  };
+  $("digitInput").addEventListener("input",()=>{
+    const v=$("digitInput").value;
+    if(v&&!/^[0-9]$/.test(v))$("digitInput").value=v.replace(/[^0-9]/g,"").slice(0,1);
+  });
+  $("imgInput").addEventListener("change",e=>{
+    const f=e.target.files[0];if(!f)return;
+    const img=new Image();
+    img.onload=()=>{lastImg=img;imgInv=false;focusOn=false;
+      $("focusBtn").classList.remove("on");
+      $("contrastRow").style.display="flex";
+      $("focusBtn").style.display="inline-flex";
+      $("imgInvert").style.display="inline-flex";
+      lastSource={kind:"image"};replay();};
+    img.src=URL.createObjectURL(f);
+  });
+  $("contrast").addEventListener("input",()=>{if(lastImg)replay();});
+  $("thresh").addEventListener("input",()=>{if(lastImg)replay();});
+  $("imgInvert").onclick=()=>{imgInv=!imgInv;if(lastImg)replay();};
+  $("focusBtn").onclick=()=>{focusOn=!focusOn;
+    $("focusBtn").classList.toggle("on",focusOn);
+    if(lastImg)replay();};
+  document.querySelectorAll("#"+p+"rotRow .pill").forEach(pl=>{
+    pl.addEventListener("click",()=>{
+      document.querySelectorAll("#"+p+"rotRow .pill").forEach(x=>x.classList.remove("on"));
+      pl.classList.add("on");rot=pl.dataset.rot;
+      updateSimText();
+      if(lastSource)replay();else renderAll();
+    });
+  });
+  function updateSimText(){
+    const side=rot!=="0";
+    $("angR").textContent=side?"左右侧视":"侧视";
+    if(isCro){
+      $("simSub").textContent=side?"正视条纹 · 左右移动显形":"正视条纹 · 侧视显形";
+      $("simHint").textContent=side
+        ?"旋转后成品条纹为纵向：左右移动视角时，长针立柱（图案色）遮住短针平面，图案浮现。"
+        :"侧视时长针立柱（图案色）遮住短针平面，图案浮现。";
+    }else{
+      $("simSub").textContent=side?"正视条纹 · 左右移动显形":"正视条纹 · 从下往上斜视显形";
+      $("simHint").textContent=side
+        ?"旋转后成品条纹为纵向：左右移动视角时，凸起织纹遮住平面，图案浮现。"
+        :"斜视时凸起的织纹遮住平面：图案处凸起的是图案色线，背景处凸起的是背景色线，图案浮现。织得比平时紧一号更清晰。";
+    }
+  }
+
+  // ---------- 钩针：色条网格（由行网格合并） ----------
+  function stripeGrid(){                 // 仅cro用；S=U/2
+    const S=U>>1,sg=mk(W,S);
+    for(let s=0;s<S;s++)for(let c=0;c<W;c++)
+      sg[s][c]=(grid[2*s][c]||grid[2*s+1][c])?1:0;
+    return sg;
+  }
+
+  // ---------- 图解 ----------
+  function drawChart(){ isCro?drawChartCro():drawChartKnit(); }
+
+  function drawChartKnit(){
+    const mL=10,mR=44,mT=8,mB=32;
+    const avail=chartCv.parentElement.clientWidth-4;
+    const cw=Math.max(8,Math.floor((avail-mL-mR)/W));
+    const cvW=mL+W*cw+mR,cvH=mT+U*cw+mB;
+    fit(chartCv,cvW,cvH,false);
+    cctx.fillStyle="#fff";cctx.fillRect(0,0,cvW,cvH);
+    const bgC=$("bgColor").value,ptC=$("patColor").value;
+    const bgDisp=classic?"#C9C7C0":symColor(bgC), ptDisp=classic?"#2B2B2B":symColor(ptC);
+    for(let u=0;u<U;u++){
+      const n=u+1,isPat=n%2===0;
+      const y=mT+(U-1-u)*cw;
+      const yarnDisp=isPat?ptDisp:bgDisp;
+      for(let c=0;c<W;c++){
+        const shape=grid[u][c]===1;
+        const knitCell=isPat?shape:!shape;   // 与手中线同色的实色格=下针
+        const x=mL+c*cw;
+        if(knitCell){
+          cctx.fillStyle=yarnDisp;
+          cctx.fillRect(x,y,cw,cw);
+        }else{                                // 打点格=上针
+          cctx.fillStyle="#FFFFFF";
+          cctx.fillRect(x,y,cw,cw);
+          cctx.fillStyle=yarnDisp;
+          cctx.beginPath();
+          cctx.arc(x+cw/2,y+cw/2,Math.max(1.2,cw*.17),0,Math.PI*2);
+          cctx.fill();
+        }
+      }
+    }
+    cctx.strokeStyle="rgba(120,120,120,.5)";cctx.lineWidth=.6;
+    for(let c=0;c<=W;c++)ln(cctx,mL+c*cw,mT,mL+c*cw,mT+U*cw);
+    for(let u=0;u<=U;u++)ln(cctx,mL,mT+u*cw,mL+W*cw,mT+u*cw);
+    cctx.strokeStyle="rgba(200,48,46,.8)";cctx.lineWidth=1.6;
+    for(let c=0;c<=W;c+=10)ln(cctx,mL+c*cw,mT,mL+c*cw,mT+U*cw);
+    for(let u=0;u<=U;u+=10)ln(cctx,mL,mT+(U-u)*cw,mL+W*cw,mT+(U-u)*cw);
+    cctx.fillStyle="#26324B";cctx.font="700 11px -apple-system,sans-serif";
+    cctx.textBaseline="middle";cctx.textAlign="left";
+    for(let u=10;u<=U;u+=10)cctx.fillText(u,mL+W*cw+6,mT+(U-u)*cw+cw/2);
+    cctx.textAlign="center";cctx.textBaseline="top";
+    for(let c=10;c<=W;c+=10)cctx.fillText(c,mL+c*cw-cw/2,mT+U*cw+6);
+    cctx.fillStyle="rgba(38,50,75,.45)";cctx.font="600 10px -apple-system,sans-serif";
+    cctx.textAlign="right";cctx.textBaseline="bottom";
+    cctx.fillText(WATERMARK,cvW-6,cvH-4);
+  }
+
+  function drawChartCro(){
+    const sg=stripeGrid();
+    const mL=44,mR=44,mT=8,mB=32;
+    const avail=chartCv.parentElement.clientWidth-4;
+    const cw=Math.max(13,Math.floor((avail-mL-mR)/W));
+    const rh=Math.round(cw*1.15);
+    const cvW=mL+W*cw+mR,cvH=mT+U*rh+mB;
+    fit(chartCv,cvW,cvH,false);
+    cctx.fillStyle="#fff";cctx.fillRect(0,0,cvW,cvH);
+    const bgC=$("bgColor").value,ptC=$("patColor").value;
+    const dcSym=classic?"#C8302E":shadeHex(ptC,.5);
+    const dcBand=classic?"rgba(200,48,46,.10)":tint(ptC,.32);
+    for(let r=1;r<=U;r++){
+      const s1=Math.ceil(r/2),isPat=s1%2===0,isRS=r%2===1;
+      const yarn=classic?(isPat?"#1c1c1c":"#8a8a8a"):symColor(isPat?ptC:bgC);
+      const band=classic?(isPat?"rgba(0,0,0,.05)":"rgba(0,0,0,0)"):tint(isPat?ptC:bgC,.10);
+      const y=mT+(U-r)*rh;
+      cctx.fillStyle=band;cctx.fillRect(mL,y,W*cw,rh);
+      for(let c=0;c<W;c++){
+        const x=mL+c*cw;
+        const dc=isPat&&isRS&&sg[s1-1][c]===1;
+        if(dc){cctx.fillStyle=dcBand;cctx.fillRect(x,y,cw,rh);}
+        drawSym(cctx,x,y,cw,rh,dc,dc?dcSym:yarn);
+      }
+      cctx.fillStyle="#26324B";cctx.font="700 11px -apple-system,sans-serif";
+      cctx.textBaseline="middle";
+      if(isRS){cctx.textAlign="left";cctx.fillText("← "+r,mL+W*cw+6,y+rh/2);}
+      else{cctx.textAlign="right";cctx.fillText(r+" →",mL-6,y+rh/2);}
+    }
+    cctx.strokeStyle="rgba(38,50,75,.12)";cctx.lineWidth=.6;
+    for(let c=0;c<=W;c++)ln(cctx,mL+c*cw,mT,mL+c*cw,mT+U*rh);
+    cctx.strokeStyle="rgba(200,48,46,.7)";cctx.lineWidth=1.6;
+    for(let c=0;c<=W;c+=10)ln(cctx,mL+c*cw,mT,mL+c*cw,mT+U*rh);
+    for(let r=0;r<=U;r+=10)ln(cctx,mL,mT+(U-r)*rh,mL+W*cw,mT+(U-r)*rh);
+    cctx.fillStyle="#26324B";cctx.font="700 11px -apple-system,sans-serif";
+    cctx.textAlign="center";cctx.textBaseline="top";
+    for(let c=10;c<=W;c+=10)cctx.fillText(c,mL+c*cw-cw/2,mT+U*rh+6);
+    cctx.fillStyle="rgba(38,50,75,.45)";cctx.font="600 10px -apple-system,sans-serif";
+    cctx.textAlign="right";cctx.textBaseline="bottom";
+    cctx.fillText(WATERMARK,cvW-6,cvH-4);
+  }
+  function drawSym(ctx,x,y,w,h,dc,color){
+    ctx.strokeStyle=color;ctx.lineWidth=Math.max(1.2,w*.11);ctx.lineCap="round";
+    const px=x+w/2,pad=w*.24;
+    if(!dc){
+      const cy=y+h/2,r=Math.min(w,h)*.26;
+      ln(ctx,px-r,cy-r,px+r,cy+r);
+      ln(ctx,px-r,cy+r,px+r,cy-r);
+    }else{
+      const top=y+h*.12,bot=y+h*.92;
+      ln(ctx,px,top,px,bot);
+      ln(ctx,x+pad,top,x+w-pad,top);
+      const my=y+h*.52,o=w*.2;
+      ln(ctx,px-o,my+o*.9,px+o,my-o*.9);
+    }
+  }
+
+  // ---------- 文字说明 ----------
+  function knitRuns(u){
+    const n=u+1,isPat=n%2===0;
+    const parts=[];let cur=null,cnt=0;
+    for(const v of grid[u]){
+      const s=isPat?(v?"k":"p"):(v?"p":"k");
+      if(s===cur)cnt++;else{if(cur)parts.push(cur+cnt);cur=s;cnt=1;}
+    }
+    parts.push(cur+cnt);
+    if(parts.length===1)return cur==="k"?"全部下针（k"+W+"）":"全部上针（p"+W+"）";
+    return parts.join(", ");
+  }
+  function croRuns(arr){
+    const parts=[];let cur=null,cnt=0;
+    for(const v of arr){
+      const s=v?"长":"短";
+      if(s===cur)cnt++;else{if(cur)parts.push(cnt+cur);cur=s;cnt=1;}
+    }
+    parts.push(cnt+cur);
+    if(parts.length===1&&cur==="短")return "全短针（"+W+"短）";
+    return parts.join("，");
+  }
+  function buildInstr(){
+    const tb=$("instrTable").querySelector("tbody");tb.innerHTML="";
+    const frag=document.createDocumentFragment();
+    if(!isCro){
+      for(let u=0;u<U;u++){
+        const n=u+1,isPat=n%2===0;
+        const tr=document.createElement("tr");
+        if(isPat)tr.className="pat";
+        const td1=document.createElement("td");
+        td1.textContent="行"+(2*u+2)+"（"+(isPat?"图案色":"背景色")+"）";
+        const td2=document.createElement("td");td2.className="mono";
+        td2.textContent=knitRuns(u);
+        tr.append(td1,td2);frag.append(tr);
+      }
+    }else{
+      const sg=stripeGrid(),S=U>>1;
+      for(let s=0;s<S;s++){
+        const n=s+1,isPat=n%2===0;
+        const r1=s*2+1,r2=s*2+2;
+        const tr=document.createElement("tr");
+        if(isPat)tr.className="pat";
+        const td1=document.createElement("td");
+        td1.textContent="行"+r1+"–"+r2+"（"+(isPat?"图案色":"背景色")+"）";
+        const td2=document.createElement("td");td2.className="mono";
+        const hasP=isPat&&sg[s].some(v=>v===1);
+        td2.textContent="行"+r1+"（右→左）："+(hasP?croRuns(sg[s].slice().reverse()):"全短针")
+          +"　|　行"+r2+"（左→右）：全短针";
+        tr.append(td1,td2);frag.append(tr);
+      }
+    }
+    tb.append(frag);
+  }
+  function instrText(){
+    let out="";
+    if(!isCro){
+      out="棒针光栅编织文字说明（"+W+"针 × "+(U*2)+"行）\n";
+      out+="用背景色线起"+W+"针（建议临时起针）。\n";
+      out+="图解每一横行=2行编织，同一种线织完2行再换线；横行里出现哪种颜色就用哪种线。\n";
+      out+="第1行（正面）：永远全部下针，从右往左，无需看图。\n";
+      out+="第2行（反面）：按下表从左到右织，k=下针，p=上针。\n\n";
+      for(let u=0;u<U;u++){
+        const n=u+1,isPat=n%2===0;
+        out+="行"+(2*u+2)+"("+(isPat?"图案色":"背景色")+") 反面行: "+knitRuns(u)+"\n";
+      }
+      out+="\n最后2行的反面行松松收针（或接边框）。";
+    }else{
+      const sg=stripeGrid(),S=U>>1;
+      out="钩针光栅编织文字说明（"+W+"针 × "+U+"行）\n";
+      out+="锁针起"+W+"针。每2行为一组并换色：这一组出现哪种颜色就用哪种线。\n";
+      out+="行方向按从正面看织物描述：正面行从右→左，反面行从左→右。每行开头的起立针（1锁针）已省略。\n";
+      out+="图案色行组的正面行：图案处钩长针，其余短针。\n";
+      out+="★关键：图案色行组的反面行遇到下方是长针的针目时，短针钩入长针背后的横线，把长针立柱推向正面凸起。\n\n";
+      for(let s=0;s<S;s++){
+        const n=s+1,isPat=n%2===0;
+        const hasP=isPat&&sg[s].some(v=>v===1);
+        out+="行"+(s*2+1)+"–"+(s*2+2)+"("+(isPat?"图案色":"背景色")+"): 行"+(s*2+1)+"(右→左) "
+          +(hasP?croRuns(sg[s].slice().reverse()):"全短针")+" | 行"+(s*2+2)+"(左→右) 全短针\n";
+      }
+    }
+    out+="\n\n"+WATERMARK;
+    return out;
+  }
+
+  // ---------- 线色 ----------
+  function checkWarn(){
+    $("colorWarn").style.display=
+      (!classic&&colorDist($("bgColor").value,$("patColor").value)<85)?"block":"none";
+    const light=relLum($("bgColor").value)>190||relLum($("patColor").value)>190;
+    $("lightNote").style.display=(!classic&&light)?"block":"none";
+  }
+  $("classicBtn").onclick=()=>{classic=!classic;
+    $("classicBtn").classList.toggle("on",classic);
+    $("classicBtn").textContent=classic?"返回线色显示":"经典黑白";
+    checkWarn();drawChart();};
+  $("bgColor").addEventListener("input",()=>{checkWarn();drawChart();drawPreview();});
+  $("patColor").addEventListener("input",()=>{checkWarn();drawChart();drawPreview();});
+
+  // ---------- 视角模拟（限高，旋转在像素层完成） ----------
+  function drawPreview(){
+    const availW=Math.min(prevCv.parentElement.clientWidth-4,610);
+    const maxH=440;
+    const OW=(rot==="0")?W:U,OH=(rot==="0")?U:W;
+    const u=Math.min(availW/OW,maxH/OH);
+    fit(prevCv,u*OW,u*OH,false);
+    const t=(+$("angle").value)/100;
+    const B=rgb($("bgColor").value),P=rgb($("patColor").value);
+    function cellAt(cx,uy){          // uy: 0在顶（fabric行索引，自上而下）
+      const uu=U-1-uy;               // 自下而上的单元号（0起）
+      const stripe1=isCro?Math.floor(uu/2)+1:uu+1;
+      const isPat=stripe1%2===0;
+      const shape=grid[uu][cx]===1;
+      const raised=isCro?shape:(isPat?shape:!shape);
+      return{yarn:isPat?P:B,shape,raised};
+    }
+    for(let j=0;j<OH;j++)for(let i=0;i<OW;i++){
+      let cx,uy;
+      // 旋转模式下按成品穿着视角展示：图案保持正立，条纹变为纵向
+      if(rot==="0"){cx=i;uy=j;}
+      else if(rot==="cw"){cx=W-1-j;uy=i;}   // 织时顺转90° → 展示时逆转回来
+      else{cx=j;uy=U-1-i;}                   // 织时逆转90° → 展示时顺转回来
+      const cell=cellAt(cx,uy);
+      const dom=cell.shape?P:cell.yarn;
+      const col=cell.yarn.map((v,k)=>Math.round(v+(dom[k]-v)*t));
+      pctx.fillStyle="rgb("+col.join(",")+")";
+      pctx.fillRect(i*u,j*u,Math.ceil(u),Math.ceil(u));
+      if(cell.raised){
+        pctx.fillStyle="rgba(255,255,255,.13)";
+        if(rot==="0")pctx.fillRect(i*u,j*u,Math.ceil(u),Math.max(1,u*.4));
+        else pctx.fillRect(i*u,j*u,Math.max(1,u*.4),Math.ceil(u));
+      }
+    }
+    const deg=t*44;
+    prevCv.style.transform=rot==="0"?"rotateX("+deg+"deg)":"rotateY("+deg+"deg)";
+    prevCv.style.transformOrigin=rot==="0"?"center 80%":"20% center";
+  }
+  $("angle").addEventListener("input",drawPreview);
+
+  // ---------- 其它 ----------
+  $("penBtn").onclick=()=>{tool="pen";$("penBtn").classList.add("on");$("eraseBtn").classList.remove("on");};
+  $("eraseBtn").onclick=()=>{tool="erase";$("eraseBtn").classList.add("on");$("penBtn").classList.remove("on");};
+  $("clearBtn").onclick=()=>{grid=mk(W,U);lastSource=null;renderAll();};
+  $("invertBtn").onclick=()=>{for(let u=0;u<U;u++)for(let c=0;c<W;c++)grid[u][c]^=1;renderAll();};
+  $("resizeBtn").onclick=()=>{
+    const nw=Math.min(100,Math.max(15,+$("gw").value||40));
+    let nh=Math.min(100,Math.max(10,+$("gh").value||40));
+    if(isCro)nh=Math.round(nh/2)*2;
+    $("gw").value=nw;$("gh").value=nh;
+    const ng=mk(nw,nh);
+    for(let u=0;u<Math.min(U,nh);u++)for(let c=0;c<Math.min(W,nw);c++)ng[u][c]=grid[u][c];
+    W=nw;U=nh;grid=ng;
+    if(lastSource)replay();else renderAll();
+  };
+  $("dlChart").onclick=()=>{
+    const a=document.createElement("a");
+    a.download=(isCro?"crochet":"knitting")+"-illusion-chart-"+W+"x"+U+".png";
+    a.href=chartCv.toDataURL("image/png");a.click();
+  };
+  $("copyText").onclick=async()=>{
+    const done=()=>{$("copyText").textContent="已复制 ✓";
+      setTimeout(()=>$("copyText").textContent="复制文字说明",1500);};
+    try{await navigator.clipboard.writeText(instrText());done();}
+    catch(e){const ta=document.createElement("textarea");ta.value=instrText();
+      document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();done();}
+  };
+
+  function renderAll(){
+    if(document.getElementById(p==="k-"?"view-knit":"view-cro").hidden)return;
+    drawEditor();drawChart();buildInstr();drawPreview();checkWarn();
+  }
+  // 初始图案：爱心
+  lastSource={kind:"shape",fn:shapeDefs[0].draw};
+  return{renderAll,replay,init(){replay();}};
+}
+
+apps.knit=makeApp("k-","knit");
+apps.cro=makeApp("c-","cro");
+window.addEventListener("resize",()=>{
+  if(!document.getElementById("view-knit").hidden)apps.knit.renderAll();
+  if(!document.getElementById("view-cro").hidden)apps.cro.renderAll();
+});
+
+// 初始视图（支持 #knitting / #crochet 直达）
+const h=location.hash.replace("#","");
+const start=h==="knitting"?"knit":h==="crochet"?"cro":"home";
+apps.knit.init();apps.cro.init();
+showView(start);
+})();
+</script>
+</body>
+</html>
