@@ -3,8 +3,9 @@
 
 画出图案 / 输入文字数字 / 导入照片，一键生成**棒针**和**钩针**的光栅编织（幻影编织）图解与逐行文字说明。正视是条纹，换个角度看见图案。
 
-**在线使用：**
-https://eyewitnesshsu-ops.github.io/illusion-stitch-studio/
+**在线使用（国内直连）：** https://illusion-stitch-studio.pages.dev
+**备用：** https://eyewitnesshsu-ops.github.io/illusion-stitch-studio/
+
 
 ## 功能
 - 手绘画布 + 预设图形（心形/圆/方/三角/星/太阳/月亮）+ 文字数字生成
