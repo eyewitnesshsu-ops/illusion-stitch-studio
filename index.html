@@ -123,6 +123,16 @@ details.sec summary{font-family:"Songti SC",serif;font-size:14px;padding:6px 0}
 footer.site{margin-top:44px;font-size:10.5px;color:#9a988e;border-top:1px dashed var(--line);
   padding-top:12px;text-align:center;line-height:1.9}
 [hidden]{display:none !important}
+.img-modal{position:fixed;inset:0;background:rgba(38,50,75,.88);z-index:99;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:20px;overflow:auto}
+.img-modal .tip-top{color:#fff;font-size:14px;font-weight:800;margin-bottom:12px;text-align:center}
+.img-modal .tip-top small{display:block;font-weight:400;font-size:11.5px;color:rgba(255,255,255,.75);margin-top:4px}
+.img-modal img{max-width:94%;max-height:64vh;background:#fff;border-radius:8px;
+  border:2px solid #fff;object-fit:contain}
+.img-modal .mrow{display:flex;gap:10px;margin-top:16px}
+.img-modal a.dl{color:#fff;font-size:12px;text-decoration:underline;align-self:center}
+.img-modal button{box-shadow:none}
 </style>
 </head>
 <body>
@@ -368,6 +378,16 @@ footer.site{margin-top:44px;font-size:10.5px;color:#9a988e;border-top:1px dashed
   设计开发：小红书 @翡晔楼 · 仅供个人使用，禁止商用
 </footer>
 </div>
+
+<!-- 图解保存弹层 -->
+<div class="img-modal" id="imgModal" hidden>
+  <div class="tip-top">长按下方图片 → 「存储图像」即可保存到相册<small>电脑端：右键图片另存为，或点下方直接下载</small></div>
+  <img id="imgModalPic" alt="图解">
+  <div class="mrow">
+    <a class="dl" id="imgModalDl" download="chart.png" href="#">直接下载</a>
+    <button id="imgModalClose">关闭</button>
+  </div>
+</div>
 <script>
 (function(){
 "use strict";
@@ -384,6 +404,21 @@ function showView(v){
 }
 document.querySelectorAll("[data-go]").forEach(el=>{
   el.addEventListener("click",()=>showView(el.dataset.go));
+});
+
+// ===================== 图解保存弹层 =====================
+window.showChartModal=function(dataURL,filename){
+  const m=document.getElementById("imgModal");
+  document.getElementById("imgModalPic").src=dataURL;
+  const dl=document.getElementById("imgModalDl");
+  dl.href=dataURL;dl.download=filename;
+  m.hidden=false;
+};
+document.getElementById("imgModalClose").addEventListener("click",()=>{
+  document.getElementById("imgModal").hidden=true;
+});
+document.getElementById("imgModal").addEventListener("click",e=>{
+  if(e.target.id==="imgModal")document.getElementById("imgModal").hidden=true;
 });
 
 // ===================== 工具函数 =====================
@@ -928,9 +963,8 @@ function makeApp(p,mode){
     if(lastSource)replay();else renderAll();
   };
   $("dlChart").onclick=()=>{
-    const a=document.createElement("a");
-    a.download=(isCro?"crochet":"knitting")+"-illusion-chart-"+W+"x"+U+".png";
-    a.href=chartCv.toDataURL("image/png");a.click();
+    const name=(isCro?"crochet":"knitting")+"-illusion-chart-"+W+"x"+U+".png";
+    window.showChartModal(chartCv.toDataURL("image/png"),name);
   };
   $("copyText").onclick=async()=>{
     const done=()=>{$("copyText").textContent="已复制 ✓";
