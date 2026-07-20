@@ -194,13 +194,10 @@ footer.site{margin-top:44px;font-size:10.5px;color:#9a988e;border-top:1px dashed
   </div>
   <div class="toolrow" id="k-shapeRow"></div>
   <div class="toolrow">
-    <input type="text" id="k-letterInput" placeholder="字/字母" maxlength="2">
+    <input type="text" id="k-letterInput" placeholder="汉字/字母/数字" maxlength="8" style="width:130px">
     <button id="k-letterBtn">生成文字</button>
   </div>
-  <div class="toolrow">
-    <input type="text" class="digit" id="k-digitInput" placeholder="0–9" inputmode="numeric" maxlength="1">
-    <button id="k-digitBtn">生成数字</button>
-  </div>
+  <p class="hint" id="k-textHint" style="margin:-4px 0 10px"></p>
   <div class="photo-block">
     <div class="bt">📷 导入照片（结果直接出现在下方画布）</div>
     <div class="toolrow" style="margin-bottom:0">
@@ -304,13 +301,10 @@ footer.site{margin-top:44px;font-size:10.5px;color:#9a988e;border-top:1px dashed
   </div>
   <div class="toolrow" id="c-shapeRow"></div>
   <div class="toolrow">
-    <input type="text" id="c-letterInput" placeholder="字/字母" maxlength="2">
+    <input type="text" id="c-letterInput" placeholder="汉字/字母/数字" maxlength="8" style="width:130px">
     <button id="c-letterBtn">生成文字</button>
   </div>
-  <div class="toolrow">
-    <input type="text" class="digit" id="c-digitInput" placeholder="0–9" inputmode="numeric" maxlength="1">
-    <button id="c-digitBtn">生成数字</button>
-  </div>
+  <p class="hint" id="c-textHint" style="margin:-4px 0 10px"></p>
   <div class="photo-block">
     <div class="bt">📷 导入照片（结果直接出现在下方画布）</div>
     <div class="toolrow" style="margin-bottom:0">
@@ -645,7 +639,12 @@ function makeApp(p,mode){
   function textDrawer(txt){
     return(o,w,h)=>{
       o.textAlign="center";o.textBaseline="middle";
-      o.font="900 "+Math.floor(Math.min(w,h)*(txt.length>1?.62:.9))+"px -apple-system,'PingFang SC',sans-serif";
+      const fam="-apple-system,'PingFang SC',sans-serif";
+      let fs=Math.min(w,h)*.9;                 // 先按单字大小起步
+      o.font="900 "+Math.floor(fs)+"px "+fam;
+      const tw=o.measureText(txt).width;       // 测量后按宽度收缩，长文本不截断
+      if(tw>w*.96)fs=fs*(w*.96)/tw;
+      o.font="900 "+Math.floor(fs)+"px "+fam;
       o.fillText(txt,w/2,h/2+h*.03);
     };
   }
@@ -668,15 +667,12 @@ function makeApp(p,mode){
     const t=$("letterInput").value.trim();if(!t)return;
     lastSource={kind:"text",v:t};replay();
   };
-  $("digitBtn").onclick=()=>{
-    const t=$("digitInput").value.trim();
-    if(!/^[0-9]$/.test(t)){$("digitInput").value="";$("digitInput").placeholder="仅限0–9";return;}
-    lastSource={kind:"text",v:t};replay();
-  };
-  $("digitInput").addEventListener("input",()=>{
-    const v=$("digitInput").value;
-    if(v&&!/^[0-9]$/.test(v))$("digitInput").value=v.replace(/[^0-9]/g,"").slice(0,1);
-  });
+  // 按当前画布宽度动态建议字数：汉字≈宽/20，字母数字≈宽/12
+  function updateTextHint(){
+    const cn=Math.max(1,Math.floor(W/20)),an=Math.max(1,Math.floor(W/12));
+    $("textHint").textContent="当前宽度 "+W+" 建议：汉字 ≤"+cn+" 字，字母/数字 ≤"+an+" 个（超出也能生成，笔画会变粗糙）";
+  }
+  updateTextHint();
   $("imgInput").addEventListener("change",e=>{
     const f=e.target.files[0];if(!f)return;
     const img=new Image();
@@ -992,6 +988,7 @@ function makeApp(p,mode){
     const ng=mk(nw,nh);
     for(let u=0;u<Math.min(U,nh);u++)for(let c=0;c<Math.min(W,nw);c++)ng[u][c]=grid[u][c];
     W=nw;U=nh;grid=ng;
+    updateTextHint();
     if(lastSource)replay();else renderAll();
   };
   $("dlChart").onclick=()=>{
