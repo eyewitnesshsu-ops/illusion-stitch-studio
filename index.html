@@ -23,7 +23,17 @@ body{
 .cols{display:block}
 @media (min-width:960px){
   .stage{max-width:1200px}
-  .cols{display:grid;grid-template-columns:minmax(380px,480px) 1fr;gap:24px;align-items:start}
+  .cols{display:grid;grid-template-columns:440px minmax(0,1fr);gap:28px;align-items:start}
+  /* 左栏吸顶：滚动看图解时画布始终可见，也消除两栏高度差造成的大片空白感 */
+  .cols>.col:first-child{position:sticky;top:14px;align-self:start;
+    max-height:calc(100vh - 28px);overflow-y:auto;padding:4px 8px 24px 4px}
+  /* 首页：内容居中、放大，适配横屏 */
+  #view-home .home-head{max-width:640px;margin:0 auto;padding-top:84px;text-align:center}
+  #view-home h1{font-size:46px}
+  #view-home .home-sub{max-width:440px;margin:16px auto 38px}
+  #view-home .cards{margin:0 auto}
+  /* 内页顶栏与正文同宽居中 */
+  .pagebar{padding-top:28px}
 }
 /* ---- home ---- */
 .home-head{padding:52px 4px 8px}
