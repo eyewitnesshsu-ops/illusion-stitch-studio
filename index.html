@@ -453,6 +453,20 @@ function fit(cv,w,h,fluid){
 }
 function ln(ctx,x1,y1,x2,y2){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
 const WATERMARK="© 翡晔楼 · 小红书 @翡晔楼";
+function drawTiledWM(ctx,w,h){   // 右上45°斜排、连续重复、3排铺满
+  ctx.save();
+  ctx.translate(w/2,h/2);ctx.rotate(-Math.PI/4);
+  ctx.fillStyle="rgba(110,110,110,.32)";
+  ctx.font="600 15px -apple-system,'PingFang SC',sans-serif";
+  ctx.textAlign="center";ctx.textBaseline="middle";
+  const unit=WATERMARK+"　✦　";
+  const diag=Math.sqrt(w*w+h*h);
+  let str=unit;
+  while(ctx.measureText(str).width<diag)str+=unit;
+  const gap=Math.max(130,diag/4);
+  for(const dy of [-gap,0,gap])ctx.fillText(str,0,dy);
+  ctx.restore();
+}
 
 // 基础图形（含太阳/月亮），全部撑满可绘制区域
 const IC={
@@ -716,7 +730,7 @@ function makeApp(p,mode){
   function drawChart(){ isCro?drawChartCro():drawChartKnit(); }
 
   function drawChartKnit(){
-    const mL=10,mR=44,mT=8,mB=32;
+    const mL=44,mR=44,mT=30,mB=32;
     const avail=chartCv.parentElement.clientWidth-4;
     const cw=Math.max(8,Math.floor((avail-mL-mR)/W));
     const cvW=mL+W*cw+mR,cvH=mT+U*cw+mB;
@@ -754,16 +768,21 @@ function makeApp(p,mode){
     cctx.fillStyle="#26324B";cctx.font="700 11px -apple-system,sans-serif";
     cctx.textBaseline="middle";cctx.textAlign="left";
     for(let u=10;u<=U;u+=10)cctx.fillText(u,mL+W*cw+6,mT+(U-u)*cw+cw/2);
+    cctx.textAlign="right";
+    for(let u=10;u<=U;u+=10)cctx.fillText(u,mL-6,mT+(U-u)*cw+cw/2);
     cctx.textAlign="center";cctx.textBaseline="top";
     for(let c=10;c<=W;c+=10)cctx.fillText(c,mL+c*cw-cw/2,mT+U*cw+6);
-    cctx.fillStyle="rgba(38,50,75,.45)";cctx.font="600 10px -apple-system,sans-serif";
+    cctx.textBaseline="bottom";
+    for(let c=10;c<=W;c+=10)cctx.fillText(c,mL+c*cw-cw/2,mT-6);
+    drawTiledWM(cctx,cvW,cvH);
+    cctx.fillStyle="rgba(38,50,75,.30)";cctx.font="600 10px -apple-system,sans-serif";
     cctx.textAlign="right";cctx.textBaseline="bottom";
     cctx.fillText(WATERMARK,cvW-6,cvH-4);
   }
 
   function drawChartCro(){
     const sg=stripeGrid();
-    const mL=44,mR=44,mT=8,mB=32;
+    const mL=44,mR=44,mT=30,mB=32;
     const avail=chartCv.parentElement.clientWidth-4;
     const cw=Math.max(13,Math.floor((avail-mL-mR)/W));
     const rh=Math.round(cw*1.15);
@@ -798,7 +817,10 @@ function makeApp(p,mode){
     cctx.fillStyle="#26324B";cctx.font="700 11px -apple-system,sans-serif";
     cctx.textAlign="center";cctx.textBaseline="top";
     for(let c=10;c<=W;c+=10)cctx.fillText(c,mL+c*cw-cw/2,mT+U*rh+6);
-    cctx.fillStyle="rgba(38,50,75,.45)";cctx.font="600 10px -apple-system,sans-serif";
+    cctx.textBaseline="bottom";
+    for(let c=10;c<=W;c+=10)cctx.fillText(c,mL+c*cw-cw/2,mT-6);
+    drawTiledWM(cctx,cvW,cvH);
+    cctx.fillStyle="rgba(38,50,75,.30)";cctx.font="600 10px -apple-system,sans-serif";
     cctx.textAlign="right";cctx.textBaseline="bottom";
     cctx.fillText(WATERMARK,cvW-6,cvH-4);
   }
